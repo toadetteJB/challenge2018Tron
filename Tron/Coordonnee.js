@@ -1,7 +1,8 @@
-export class Coordonnee {
+class Coordonnee {
     constructor(x, y){
-        this._x = x;
-        this._y = y;
+        this.x = x;
+        this.y = y;
     }
-    
 }
+
+module.exports = Coordonnee;
