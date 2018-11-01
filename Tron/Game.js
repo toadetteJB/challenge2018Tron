@@ -289,6 +289,7 @@ class Game {
         }            
         else
         {
+            //return 0;
             return this.algo.coeffDirectionsAEviter(coord) ;
         }
     }

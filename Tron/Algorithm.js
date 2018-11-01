@@ -1,7 +1,7 @@
 const Game = require('./Game');
 const Coordonnee = require('./Coordonnee');
 const Utils = require('./Utils');
-const SEUIL = 10;
+const SEUIL = 35;
 
 class Algorithm {
 
@@ -57,7 +57,7 @@ class Algorithm {
         let Q = [];
 
         // initially all vertices are unexplored
-        let layer = this.grille.slice();
+        let layer = this.grille.map(a => ({...a})); 
 
         layer[coordNewDir.y][coordNewDir.x] = 0
         Q.push(coordNewDir);
