@@ -1,5 +1,7 @@
 const Coordonnee = require('./Coordonnee');
+const Arc = require('./Arc');
 const Utils = require('./Utils');
+const Algorithm = require('./Algorithm');
 
 const Direction = Utils.Direction;
 
@@ -9,6 +11,10 @@ class Game {
         this.lumicycles = lumicycles;
         this.config = config;
         this.casesInterdites = [];
+        this.calculCasesInterdites();
+        this.arcs = [];
+        //this.calculArcs();
+        this.algo = new Algorithm(this);
     }
 
     getJoueur1() {
@@ -36,8 +42,151 @@ class Game {
         this.lumicycles.forEach(lumicycle => {            
             this.casesInterdites = this.casesInterdites.concat(lumicycle.points);
         });
-        //console.log("this.casesInterdites:",this.casesInterdites);
-      
+        //console.log("this.casesInterdites:",this.casesInterdites);      
+    }
+
+    /**
+     * Calcul les arcs du jeu
+     */
+    calculArcs() {
+        this.calculArcGrille();
+        this.calculArcHorsLimiteGauche();
+        this.calculArcHorsLimiteHaut();
+        this.calculArcHorsLimiteDroite();
+        this.calculArcHorsLimiteBas();   
+    }
+
+    /**
+     * Calcul les arcs dans la grille
+     */
+    calculArcGrille() {
+        for(var x=0; x < this.config.maxX; x++) {
+            for(var y=0; y < this.config.maxY; y++) {
+                const caseCourante = new Coordonnee(x,y);
+                if(this.estCaseInterdite(caseCourante))
+                {
+                    // case du dessus
+                    this.determineArc(caseCourante, new Coordonnee(x, y+1));
+                    
+                    // case diagonale en haut à droite
+                    this.determineArc(caseCourante, new Coordonnee(x+1, y+1));
+
+                    // case à droite
+                    this.determineArc(caseCourante, new Coordonnee(x+1, y));
+
+                    // case diagonale bas gauche
+                    this.determineArc(caseCourante, new Coordonnee(x+1, y-1));
+                }
+            } 
+        }
+    }
+
+    /**
+     * Calcul les arcs dans la partie hors limite gauche
+     */
+    calculArcHorsLimiteGauche() {
+         // Coté gauche
+         for(var y=0; y < this.config.maxY; y++) {
+            const caseCourante = new Coordonnee(-1,y);
+
+            // Case du dessus
+            if( y !== this.config.maxY -1)
+                this.arcs.push(new Arc(caseCourante,new Coordonnee(-1, y+1)));
+
+            // case diagonale en haut à droite
+            this.determineArc(caseCourante, new Coordonnee(0, y+1));
+
+            // case à droite
+            this.determineArc(caseCourante, new Coordonnee(0, y));
+
+            // case diagonale bas droite
+            this.determineArc(caseCourante, new Coordonnee(0, y-1));
+        }
+    }
+
+    /**
+     * Calcul les arcs dans la partie hors limite haut
+     */
+    calculArcHorsLimiteHaut() {
+        // En Haut
+        for(var x=0; x < this.config.maxX; x++) {
+            const y = this.config.maxY;
+            const caseCourante = new Coordonnee(x,y);           
+
+            // Case à droite
+            if( x !== this.config.maxX -1)
+                this.arcs.push(new Arc(caseCourante,new Coordonnee(x+1, y)));
+
+            // case diagonale en bas à gauche
+            this.determineArc(caseCourante, new Coordonnee(x-1, y-1));
+
+            // case en dessous
+            this.determineArc(caseCourante, new Coordonnee(x, y-1));
+
+            // case diagonale bas droite
+            this.determineArc(caseCourante, new Coordonnee(x+1, y-1));
+        }
+    }
+
+    /**
+     * Calcul les arcs dans la partie hors limite droite
+     */
+    calculArcHorsLimiteDroite() {
+        // Coté droite
+        for(var y=0; y < this.config.maxY; y++) {
+            const x = this.config.maxX;
+            const caseCourante = new Coordonnee(x,y);
+
+            // Case du dessus
+            if( y !== this.config.maxY -1)
+                this.arcs.push(new Arc(caseCourante,new Coordonnee(x, y+1)));
+
+            // case diagonale en haut à gauche
+            this.determineArc(caseCourante, new Coordonnee(x-1, y+1));
+
+            // case à gauche
+            this.determineArc(caseCourante, new Coordonnee(x-1, y));
+
+            // case diagonale bas gauche
+            this.determineArc(caseCourante, new Coordonnee(x-1, y-1));
+        }
+    }
+
+    /**
+     * Calcul les arcs dans la partie hors limite bas
+     */
+    calculArcHorsLimiteBas() {
+        // En Bas
+        for(var x=0; x < this.config.maxX; x++) {
+            const caseCourante = new Coordonnee(x,-1);           
+
+            // Case à droite
+            if( x !== this.config.maxX -1)
+                this.arcs.push(new Arc(caseCourante,new Coordonnee(x+1, -1)));
+
+            // case diagonale en haut à gauche
+            this.determineArc(caseCourante, new Coordonnee(x-1, 0));
+
+            // case au dessus
+            this.determineArc(caseCourante, new Coordonnee(x, 0));
+
+            // case diagonale haut droite
+            this.determineArc(caseCourante, new Coordonnee(x+1, 0));
+        }
+    }
+
+    /**
+     * Determine si une coordonnee est interdite
+     * Si vrai, on ajoute l'arc entre les 2 coordonnees
+     * @param {Coordonnee} coordBase 
+     * @param {Coordonnee} coordTest 
+     */
+    determineArc(coordBase, coordTest)
+    {
+        if(this.estCaseInterdite(coordTest))
+        {
+            this.arcs.push(new Arc(coordBase,coordTest));
+        }
     }
 
     /**
@@ -135,10 +284,13 @@ class Game {
      */
     dangerositeImmediate(coord)
     {        
-        if(this.estCaseDangereuse(coord))
+        if(this.estCaseDangereuse(coord)){
             return 9999;
+        }            
         else
-            return 0;
+        {
+            return this.algo.coeffDirectionsAEviter(coord) ;
+        }
     }
 
     /**
@@ -164,7 +316,7 @@ class Game {
 
                 coeff--;
             }
-
+            
             const listeDirDang = [
                 {dir: Direction.UP, dang: dangerositeU + this.dangerositeImmediate({x: coordJ1.x, y: coordJ1.y + 1}), text: "UP"},
                 {dir: Direction.DOWN, dang: dangerositeD + this.dangerositeImmediate({x: coordJ1.x, y: coordJ1.y - 1}), text: "DOWN"},
@@ -173,7 +325,7 @@ class Game {
             ];
 
             listeDirDang.sort((objA, objB) => objA.dang - objB.dang);
-            //console.log(listeDirDang);
+            // console.log(listeDirDang);
             listDirection.push(listeDirDang[0].text);
         });
         return listDirection;
@@ -214,6 +366,8 @@ class Game {
 
         console.log(grille);
     }
+
+    
 }
 
 module.exports = Game;

@@ -35,11 +35,6 @@ app.post('/', function(request, response) {
 
   const game = new Game(artefacts, lumicycles, config);
   console.log("Tour: "+game.config.tour);
-  
-  //console.log(game.getJoueur1().getTete());
-  //console.log("Joueur1: ",game.getJoueur1().points);
-  //console.log("Joueur2: ",game.getJoueur2().points);
-  game.calculCasesInterdites();
   game.afficheGrille();
   let direction = game.determineDirection();
   console.log(direction);
