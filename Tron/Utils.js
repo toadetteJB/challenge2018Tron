@@ -5,6 +5,13 @@ const  Direction = {
     RIGHT: 1
   };
 
+const  IdDirection = {
+    UP: 1,
+    DOWN: 2,
+    LEFT: 3,
+    RIGHT: 4
+  };
+
 const NIVEAU_MAX = 5;
 
 function fibonacci(num) {
@@ -34,4 +41,4 @@ function matrix( rows, cols, defaultValue){
     return arr;
 }
 
-  module.exports = {Direction, NIVEAU_MAX, fibonacci, matrix };
+  module.exports = {Direction, IdDirection, NIVEAU_MAX, fibonacci, matrix };

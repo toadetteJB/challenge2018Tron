@@ -39,8 +39,7 @@ class Algorithm {
      * @param {Coordonnee} coord 
      */
     coeffDirectionsAEviter(coordJ1)
-    {
-        // test case haut
+    {        
         if(this.nb_coup_dispo(coordJ1) != SEUIL)
             return 9999;
         else 

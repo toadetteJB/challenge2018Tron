@@ -4,6 +4,7 @@ const Utils = require('./Utils');
 const Algorithm = require('./Algorithm');
 
 const Direction = Utils.Direction;
+const idDirection = Utils.IdDirection;
 
 class Game {
     constructor(artefacts, lumicycles, config) {
@@ -289,8 +290,8 @@ class Game {
         }            
         else
         {
-            //return 0;
-            return this.algo.coeffDirectionsAEviter(coord) ;
+            return 0;
+            //return this.algo.coeffDirectionsAEviter(coord) ;
         }
     }
 
@@ -301,35 +302,123 @@ class Game {
         let listDirection = [];
         this.getJoueur1().forEach(J1 => {
             const coordJ1 = J1.getTete();
-            let dangerositeU = 0;
-            let dangerositeD = 0;
-            let dangerositeL = 0;
-            let dangerositeR = 0;
 
-            let coeff = Utils.NIVEAU_MAX + 3;
-
-            for(let n = 1; n <= Utils.NIVEAU_MAX; n++)
-            {
-                dangerositeU += this.checkLigne(coordJ1, n, Direction.UP, coeff);
-                dangerositeD += this.checkLigne(coordJ1, n, Direction.DOWN, coeff);
-                dangerositeL += this.checkColonne(coordJ1, n, Direction.LEFT, coeff);
-                dangerositeR += this.checkColonne(coordJ1, n, Direction.RIGHT, coeff);
-
-                coeff--;
-            }
+            // Liste des directions possibles
+            let directionsPossibles = this.getDirectionsPossibles(coordJ1);
+            if(process.env.DEBUG)
+                console.log("directions possible", directionsPossibles);
             
-            const listeDirDang = [
-                {dir: Direction.UP, dang: dangerositeU + this.dangerositeImmediate({x: coordJ1.x, y: coordJ1.y + 1}), text: "UP"},
-                {dir: Direction.DOWN, dang: dangerositeD + this.dangerositeImmediate({x: coordJ1.x, y: coordJ1.y - 1}), text: "DOWN"},
-                {dir: Direction.LEFT, dang: dangerositeL + this.dangerositeImmediate({x: coordJ1.x - 1, y: coordJ1.y}), text: "LEFT"},
-                {dir: Direction.RIGHT, dang: dangerositeR + this.dangerositeImmediate({x: coordJ1.x + 1, y: coordJ1.y}), text: "RIGHT"}
-            ];
+            // Liste de toutes les directions triées par dangerosié
+            let directionsParDangerosite = this.getDangerositeParDirection(coordJ1);
 
-            listeDirDang.sort((objA, objB) => objA.dang - objB.dang);
-            // console.log(listeDirDang);
-            listDirection.push(listeDirDang[0].text);
+            // Directions possibles triées par dangerosité
+            let directions = directionsParDangerosite.filter(element => {
+                if(directionsPossibles.indexOf(element.dir) != -1)
+                    return element;
+            });
+            if(process.env.DEBUG)
+                console.log("directions possibles par dangerosite",directions);
+            
+            // Tri de la liste en fonction du nombre de coups avant la mort
+            directions = this.getDirectionsTrieesParNbCoupsAvantMort(directions);
+            if(process.env.DEBUG)
+                console.log("directions possibles par dangerosite et par coup avant la mort",directions);
+            listDirection.push(directions.length > 0 ? directions[0].text : "UP");
         });
         return listDirection;
+    }
+
+    /**
+     * Retourne la liste de toutes les directions triée par dangerosité
+     * @param {Coordonnee} coordJ1 : coordonnee de la tete traitée
+     */
+    getDangerositeParDirection(coordJ1)
+    {
+        let dangerositeU = 0;
+        let dangerositeD = 0;
+        let dangerositeL = 0;
+        let dangerositeR = 0;
+
+        let coeff = Utils.NIVEAU_MAX + 3;
+
+        for(let n = 1; n <= Utils.NIVEAU_MAX; n++)
+        {
+            dangerositeU += this.checkLigne(coordJ1, n, Direction.UP, coeff);
+            dangerositeD += this.checkLigne(coordJ1, n, Direction.DOWN, coeff);
+            dangerositeL += this.checkColonne(coordJ1, n, Direction.LEFT, coeff);
+            dangerositeR += this.checkColonne(coordJ1, n, Direction.RIGHT, coeff);
+
+            coeff--;
+        }
+
+        const coordUP = new Coordonnee(coordJ1.x, coordJ1.y + 1);
+        const coordDOWN = new Coordonnee(coordJ1.x, coordJ1.y - 1);
+        const coordLEFT = new Coordonnee(coordJ1.x - 1, coordJ1.y);
+        const coordRIGHT = new Coordonnee(coordJ1.x + 1, coordJ1.y);
+
+        // tri des directions en fonction de la dangerosité
+        const listeDirDang = [
+            {dir: idDirection.UP, dang: dangerositeU, coord: coordUP, text: "UP"},
+            {dir: idDirection.DOWN, dang: dangerositeD, coord: coordDOWN, text: "DOWN"},
+            {dir: idDirection.LEFT, dang: dangerositeL, coord: coordLEFT, text: "LEFT"},
+            {dir: idDirection.RIGHT, dang: dangerositeR, coord: coordRIGHT, text: "RIGHT"}
+        ];
+
+        return listeDirDang.sort((objA, objB) => objA.dang - objB.dang);
+    }
+
+    /**
+     * 
+     * @param {Coordonnee} coordJ1 : coordonnee de la tete traitée
+     */
+    getDirectionsPossibles(coordJ1) {
+        const directions = [];
+        if(!this.estCaseDangereuse(new Coordonnee(coordJ1.x, coordJ1.y + 1)))
+        {
+            directions.push(idDirection.UP);
+        }
+        if(!this.estCaseDangereuse(new Coordonnee(coordJ1.x, coordJ1.y - 1)))
+        {
+            directions.push(idDirection.DOWN);
+        }
+        if(!this.estCaseDangereuse(new Coordonnee(coordJ1.x - 1, coordJ1.y)))
+        {
+            directions.push(idDirection.LEFT);
+        }
+        if(!this.estCaseDangereuse(new Coordonnee(coordJ1.x + 1, coordJ1.y)))
+        {
+            directions.push(idDirection.RIGHT);
+        }
+
+        return directions;
+    }
+
+    /**
+     * Tri les directions possibles en fonction du nombre de cases avant la mort puis par dangerosité en cas d'égalité
+     * @param {Array} directionsPossibles : liste des directions possibles triée par dangerosité
+     */
+    getDirectionsTrieesParNbCoupsAvantMort(directionsPossibles)
+    {
+
+        let listeDirectionSansCulSac = directionsPossibles.map(element => {
+            return Object.assign(element, {nbCoupAvtMort: this.algo.nb_coup_dispo(element.coord)});
+        });
+        if(process.env.DEBUG)
+            console.log("listeDirectionSansCulSac", listeDirectionSansCulSac);
+        
+        listeDirectionSansCulSac =  listeDirectionSansCulSac.sort((objA, objB) => {
+            let a = objB.nbCoupAvtMort - objA.nbCoupAvtMort;
+
+            if(a === 0)
+            {
+                a = objA.dang - objB.dang;
+            }
+
+            return a;
+        });
+        if(process.env.DEBUG)
+            console.log("listeDirectionSansCulSac trié", listeDirectionSansCulSac);
+        return listeDirectionSansCulSac;
     }
 
     afficheGrille() {

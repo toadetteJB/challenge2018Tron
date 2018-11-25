@@ -24,7 +24,7 @@ app.use(bodyParser.json());
 // http://expressjs.com/en/starter/basic-routing.html
 app.post('/', function(request, response) {
   let json = request.body;
-  //console.log(JSON.stringify(json));
+  console.log(JSON.stringify(json));
   const artefacts = json.artefacts.map(art => new Artefact(art.type, new Coordonnee(art.x, art.y)));
   const lumicycles = json.lumicycles.map(lum => {
       const points = lum.points.map(p => new Coordonnee(p.x, p.y));
@@ -34,6 +34,7 @@ app.post('/', function(request, response) {
       json.config.maxY, json.config.nbJoueurs, json.config.nbVehicules);
 
   const game = new Game(artefacts, lumicycles, config);
+  
   console.log("Tour: "+game.config.tour);
   game.afficheGrille();
   let direction = game.determineDirection();
